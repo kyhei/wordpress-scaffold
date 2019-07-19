@@ -1,0 +1,65 @@
+version: '3'
+networks:
+  frontend:
+  backend:
+
+services:
+
+  wordpress:
+     image: wordpress:latest
+     depends_on:
+       - mysql
+     ports:
+       - "8000:80"
+     restart: always
+     environment:
+       WORDPRESS_DB_HOST: mysql:3306
+       WORDPRESS_DB_USER: wordpress
+       WORDPRESS_DB_PASSWORD: wordpress
+       WORDPRESS_DB_NAME: wordpress
+     volumes:
+       - ./html:/var/www/html
+     networks:
+       - backend
+
+  mysql:
+    image: mysql:latest
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./docker/mysql/mysql_conf/:/etc/mysql/conf.d:cached
+      - ./docker/mysql/mysql_data:/var/lib/mysql:cached
+      - ./docker/mysql/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d:cached
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+    networks:
+        - backend
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    environment:
+      - PMA_ARBITRARY=1
+      - MYSQL_ROOT_PASSWORD=secret
+    ports:
+      - 8080:80
+    depends_on:
+        - mysql
+    networks:
+      - frontend
+      - backend
+
+  workspace:
+    build:
+      context: ./docker/workspace
+    tty: true
+    ports:
+      - 9001:9001
+    volumes: 
+      - ./:/opt/workspace:cached
+    working_dir: /opt/workspace
+    networks:
+      - frontend
+      - backend
